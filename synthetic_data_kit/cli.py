@@ -282,7 +282,7 @@ def ingest(
 def create(
     input: str = typer.Argument(..., help="File or directory to process"),
     content_type: str = typer.Option(
-        "qa", "--type", help="Type of content to generate [qa|distill|summary|cot|cot-enhance|multimodal-qa]"
+        "qa", "--type", help="Type of content to generate [qa|distill]"
     ),
     output_dir: Optional[Path] = typer.Option(
         None, "--output-dir", "-o", help="Where to save the output"
