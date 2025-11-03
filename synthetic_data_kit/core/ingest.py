@@ -61,7 +61,7 @@ def process_file(
     # Get parser (will validate it's a parquet file)
     parser = determine_parser(file_path, config, multimodal)
 
-    # Parse the parquet file (extracts text from 'text' column)
+    # Parse the parquet file (extracts text and id columns)
     content = parser.parse(file_path)
 
     # Generate output filename if not provided
@@ -72,9 +72,10 @@ def process_file(
     output_name += ".lance"
     output_path = os.path.join(output_dir, output_name)
 
-    # Create lance dataset with simple schema (text only)
+    # Create schema with text and id fields
     schema = pa.schema([
-        pa.field("text", pa.string())
+        pa.field("text", pa.string()),
+        pa.field("id", pa.string())
     ])
 
     create_lance_dataset(content, output_path, schema=schema)

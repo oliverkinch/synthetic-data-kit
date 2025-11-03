@@ -38,15 +38,16 @@ class ParquetParser:
                 f"Available columns: {available_columns}"
             )
         
-        # Extract text from each row and return as separate entries
+        # Extract text and id columns only
         result = []
         for _, row in df.iterrows():
-            text_content = str(row['text']) if pd.notna(row['text']) else ""
-            if text_content.strip():  # Only include non-empty text
-                result.append({"text": text_content})
+            row_dict = {
+                "text": str(row['text']),
+                "id": row['id']
+            }
+            result.append(row_dict)
         
-        # Return empty text if no valid rows found
-        return result if result else [{"text": ""}]
+        return result
     
     def save(self, content: str, output_path: str) -> None:
         """Save the extracted text to a file
