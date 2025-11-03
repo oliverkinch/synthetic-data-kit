@@ -10,57 +10,32 @@ import os
 from typing import List, Dict, Any, Optional
 
 def parse_qa_pairs(text: str) -> List[Dict[str, str]]:
-    """Parse QA pairs from LLM output with enhanced error handling"""
+    """Parse QA pairs from LLM output in plain text format: '- Question: ... Answer: ...'"""
     verbose = os.environ.get('SDK_VERBOSE', 'false').lower() == 'true'
     
     if verbose:
         print(f"Parsing response of length {len(text)}")
     
-    try:
-        # Try direct JSON parsing
-        if '[' in text and ']' in text:
-            # Find the first [ and last ]
-            start = text.find('[')
-            end = text.rfind(']') + 1
-            json_text = text[start:end]
-            
-            # Try to clean up the JSON to fix common issues
-            cleaned_text = re.sub(r'(\n\s*|\r\s*)', ' ', json_text)  # Remove newlines and extra spaces
-            cleaned_text = re.sub(r',(\s*\}|\s*\])', r'\1', cleaned_text)  # Remove trailing commas
-            
-            try:
-                pairs = json.loads(cleaned_text)
-                if verbose:
-                    print(f"Successfully parsed {len(pairs)} QA pairs")
-                return pairs
-            except json.JSONDecodeError as e:
-                if verbose:
-                    print(f"Direct JSON parsing failed: {e}")
-                    print(f"Attempted to parse: {cleaned_text[:200]}...")
-    except Exception as e:
-        if verbose:
-            print(f"Error during JSON extraction: {e}")
-    
-    # Fallback to regex pattern matching
-    if verbose:
-        print("Falling back to regex pattern matching")
-    qa_pattern = r'"question":\s*"((?:[^"\\]|\\.)*)"\s*,\s*"answer":\s*"((?:[^"\\]|\\.)*)"\s*'
+    # Pattern for: "- Question: ... Answer: ..."
+    plain_text_pattern = r'-\s*Question:\s*(.+?)\s+Answer:\s*(.+?)(?=\s*-\s*Question:|$)'
+    matches = re.finditer(plain_text_pattern, text, re.DOTALL | re.IGNORECASE)
     pairs = []
     
-    for match in re.finditer(qa_pattern, text):
+    for match in matches:
         try:
-            q = match.group(1).replace('\\"', '"')
-            a = match.group(2).replace('\\"', '"')
-            pairs.append({"question": q, "answer": a})
+            question = match.group(1).strip()
+            answer = match.group(2).strip()
+            pairs.append({"question": question, "answer": answer})
         except Exception as e:
             if verbose:
-                print(f"Error extracting pair: {e}")
+                print(f"Error extracting plain text pair: {e}")
     
     if verbose:
         if pairs:
-            print(f"Extracted {len(pairs)} QA pairs with regex")
+            print(f"Extracted {len(pairs)} QA pairs from plain text format")
         else:
             print("No QA pairs extracted. Check the model output format.")
+            print(f"Response preview: {text[:500]}")
     
     return pairs
 
