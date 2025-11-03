@@ -13,6 +13,7 @@ from synthetic_data_kit.models.llm_client import LLMClient
 from synthetic_data_kit.generators.qa_generator import QAGenerator
 from synthetic_data_kit.generators.vqa_generator import VQAGenerator
 from synthetic_data_kit.generators.multimodal_qa_generator import MultimodalQAGenerator
+from synthetic_data_kit.generators.distill_generator import DistillGenerator
 
 from synthetic_data_kit.utils.config import get_generation_config
 
@@ -47,7 +48,7 @@ def process_file(
         config_path: Path to configuration file
         api_base: VLLM API base URL
         model: Model to use
-        content_type: Type of content to generate (qa, summary, cot)
+        content_type: Type of content to generate (qa, distill, summary, cot, vqa, multimodal-qa)
         num_pairs: Target number of QA pairs to generate
         threshold: Quality threshold for filtering (1-10)
     
@@ -135,6 +136,28 @@ def process_file(
             num_examples=num_pairs,
             verbose=verbose
         )
+        return output_path
+
+    elif content_type == "distill":
+        generator = DistillGenerator(client, config_path)
+        
+        # Process documents
+        result = generator.process_documents(
+            documents,
+            verbose=verbose
+        )
+        
+        # Save output
+        output_path = os.path.join(output_dir, f"{base_name}_distilled.json")
+        print(f"Saving result to {output_path}")
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            print(f"Successfully wrote result to {output_path}")
+        except Exception as e:
+            print(f"Error writing result file: {e}")
+        
         return output_path
 
     elif content_type == "summary":

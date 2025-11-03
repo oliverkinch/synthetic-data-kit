@@ -38,6 +38,7 @@ class CreateForm(FlaskForm):
     input_file = StringField('Input File Path', validators=[DataRequired()])
     content_type = SelectField('Content Type', choices=[
         ('qa', 'Question-Answer Pairs'), 
+        ('distill', 'Distill Text'),
         ('summary', 'Summary'), 
         ('cot', 'Chain of Thought'), 
         ('cot-enhance', 'CoT Enhancement')
