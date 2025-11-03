@@ -14,10 +14,10 @@ from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 console = Console()
 
 # Supported file extensions for each command
-INGEST_EXTENSIONS = ['.pdf', '.html', '.htm', '.docx', '.pptx', '.txt']
-CREATE_EXTENSIONS = ['.txt', '.lance']
-CURATE_EXTENSIONS = ['.json']
-SAVE_AS_EXTENSIONS = ['.json']
+INGEST_EXTENSIONS = ['.parquet']  # Only parquet files for ingestion
+CREATE_EXTENSIONS = ['.lance']     # Only lance files for creation (output from ingest)
+CURATE_EXTENSIONS = ['.json']      # Only JSON files for curation
+SAVE_AS_EXTENSIONS = ['.json']     # Only JSON files for format conversion
 
 def is_directory(path: str) -> bool:
     """Check if path is a directory"""

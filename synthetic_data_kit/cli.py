@@ -182,12 +182,16 @@ def ingest(
     ),
 ):
     """
-    Parse documents (PDF, HTML, YouTube, DOCX, PPT, TXT) into clean text.
+    Ingest parquet files and convert them to lance format.
+    
+    The parquet file must contain a 'text' column with the text data.
+    Each row in the parquet file will be extracted as a separate text entry.
     
     Can process:
-    - Single file: synthetic-data-kit ingest document.pdf
-    - Directory: synthetic-data-kit ingest ./documents/
-    - URL: synthetic-data-kit ingest https://example.com/page.html
+    - Single file: synthetic-data-kit ingest data.parquet
+    - Directory: synthetic-data-kit ingest ./parquet-files/
+    
+    Output: Creates .lance files containing the extracted text data.
     """
     import os
     from synthetic_data_kit.core.ingest import process_file
@@ -306,23 +310,23 @@ def create(
     ),
 ):
     """
-    Generate content from text using local LLM inference.
+    Generate QA pairs from lance files using LLM inference.
+    
+    This command processes .lance files (output from the ingest command) and generates
+    question-answer pairs for each text entry independently.
     
     Can process:
-    - Single file: synthetic-data-kit create document.txt --type qa
-    - Directory: synthetic-data-kit create ./processed-text/ --type qa
+    - Single file: synthetic-data-kit create data.lance --type qa
+    - Directory: synthetic-data-kit create ./parsed/ --type qa
     
     Content types:
-    - qa: Generate question-answer pairs from .txt files (use --num-pairs to specify how many)
-    - summary: Generate summaries from .txt files
-    - cot: Generate Chain of Thought reasoning examples from .txt files (use --num-pairs to specify how many)
-    - multimodal-qa: Generate question-answer pairs from .lance files (use --num-pairs to specify how many)
-    - cot-enhance: Enhance existing conversations with Chain of Thought reasoning from .json files
-      (use --num-pairs to limit the number of conversations to enhance, default is to enhance all)
-      (for cot-enhance, the input must be a JSON file with either:
-       - A single conversation in 'conversations' field
-       - An array of conversation objects, each with a 'conversations' field
-       - A direct array of conversation messages)
+    - qa: Generate question-answer pairs from .lance files
+          Each text entry in the lance file is processed independently.
+          Use --num-pairs to specify how many pairs to generate PER entry
+    
+    Example workflow:
+    1. synthetic-data-kit ingest data.parquet --output-dir ./parsed
+    2. synthetic-data-kit create ./parsed/data.lance --type qa --num-pairs 10
     """
     import os
     from synthetic_data_kit.core.create import process_file

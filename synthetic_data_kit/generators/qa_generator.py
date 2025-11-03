@@ -323,7 +323,11 @@ class QAGenerator:
                         num_pairs: int = 25,
                         verbose: bool = False,
                         rolling_summary: Optional[bool] = False) -> Dict[str, Any]:
-        """Process a list of documents to generate QA pairs without rating"""
+        """Process a list of documents to generate QA pairs without rating
+        
+        Each document is processed independently and QA pairs are generated for each one.
+        num_pairs specifies how many QA pairs to generate PER DOCUMENT.
+        """
         # Set the verbose environment variable
         if verbose:
             os.environ['SDK_VERBOSE'] = 'true'
@@ -331,20 +335,42 @@ class QAGenerator:
             os.environ['SDK_VERBOSE'] = 'false'
 
         all_qa_pairs = []
-        full_text = " ".join([doc["text"] for doc in documents])
+        all_summaries = []
+        
+        if verbose:
+            print(f"Processing {len(documents)} documents independently")
+            print(f"Target: {num_pairs} QA pairs per document")
+            print(f"Expected total: {num_pairs * len(documents)} QA pairs")
+        
+        # Process each document independently
+        for i, doc in enumerate(documents, 1):
+            doc_text = doc["text"]
+            
+            if verbose:
+                print(f"\nProcessing document {i}/{len(documents)} ({len(doc_text)} chars)...")
+            
+            # Generate summary for this document
+            summary = self.generate_summary(doc_text, rolling_summary=rolling_summary)
+            all_summaries.append(summary)
+            
+            # Generate QA pairs for this document (num_pairs per document)
+            qa_pairs = self.generate_qa_pairs(doc_text, summary, num_pairs=num_pairs)
+            
+            if verbose:
+                print(f"  Generated {len(qa_pairs)} QA pairs for document {i}")
+            
+            all_qa_pairs.extend(qa_pairs)
 
-        # Generate summary
-        summary = self.generate_summary(full_text, rolling_summary=rolling_summary)
-
-        # Generate QA pairs
-        qa_pairs = self.generate_qa_pairs(full_text, summary, num_pairs=num_pairs)
-
-        all_qa_pairs.extend(qa_pairs)
-
+        # Combine all summaries
+        combined_summary = " ".join(all_summaries)
+        
         # Prepare result - no rating at this stage
         result = {
-            "summary": summary,
+            "summary": combined_summary,
             "qa_pairs": all_qa_pairs
         }
+        
+        if verbose:
+            print(f"\nTotal: {len(all_qa_pairs)} QA pairs generated from {len(documents)} documents")
 
         return result
