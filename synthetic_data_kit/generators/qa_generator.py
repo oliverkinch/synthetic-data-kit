@@ -58,7 +58,7 @@ class QAGenerator:
                 ]
                 new_summary = self.client.chat_completion(
                     messages, 
-                    temperature=0.1  # Use lower temperature for summaries
+                    temperature=self.generation_config.get("temperature", 0.7)
                 )
                 summary_per_chunk.append(new_summary)
 

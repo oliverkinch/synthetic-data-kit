@@ -282,7 +282,7 @@ def ingest(
 def create(
     input: str = typer.Argument(..., help="File or directory to process"),
     content_type: str = typer.Option(
-        "qa", "--type", help="Type of content to generate [qa|summary|cot|cot-enhance|multimodal-qa]"
+        "qa", "--type", help="Type of content to generate [qa|distill]"
     ),
     output_dir: Optional[Path] = typer.Option(
         None, "--output-dir", "-o", help="Where to save the output"
@@ -310,10 +310,10 @@ def create(
     ),
 ):
     """
-    Generate QA pairs from lance files using LLM inference.
+    Generate content from lance files using LLM inference.
     
     This command processes .lance files (output from the ingest command) and generates
-    question-answer pairs for each text entry independently.
+    various types of content for each text entry independently.
     
     Can process:
     - Single file: synthetic-data-kit create data.lance --type qa
@@ -323,10 +323,16 @@ def create(
     - qa: Generate question-answer pairs from .lance files
           Each text entry in the lance file is processed independently.
           Use --num-pairs to specify how many pairs to generate PER entry
+    - distill: Rewrite text into concise and clear passages
+          Each text entry is distilled into a shorter, clearer version.
+    - summary: Generate summaries of text
+    - cot: Generate chain-of-thought reasoning examples
+    - multimodal-qa: Generate QA pairs with multimodal content
     
     Example workflow:
     1. synthetic-data-kit ingest data.parquet --output-dir ./parsed
     2. synthetic-data-kit create ./parsed/data.lance --type qa --num-pairs 10
+    3. synthetic-data-kit create ./parsed/data.lance --type distill
     """
     import os
     from synthetic_data_kit.core.create import process_file
