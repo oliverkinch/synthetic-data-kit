@@ -6,3 +6,4 @@
 # Generator logic for both QA 
 from synthetic_data_kit.generators.qa_generator import QAGenerator
 from synthetic_data_kit.generators.distill_generator import DistillGenerator
+from synthetic_data_kit.generators.knowledge_list_generator import KnowledgeListGenerator
