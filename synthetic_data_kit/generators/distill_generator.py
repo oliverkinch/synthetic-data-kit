@@ -38,7 +38,14 @@ class DistillGenerator:
         prompt = prompt_template.format(text=document_text)
         
         # Generate distilled text using the LLM
-        distilled_text = self.client.generate(prompt)
+        messages = [
+            {"role": "system", "content": prompt}
+        ]
+        
+        distilled_text = self.client.chat_completion(
+            messages,
+            temperature=self.generation_config.get("temperature", 0.7)
+        )
         
         if verbose:
             print(f"Distilled text generated ({len(distilled_text)} chars)")
@@ -51,12 +58,18 @@ class DistillGenerator:
         """Process multiple documents and distill each one
         
         Args:
-            documents: List of documents with 'text' field
+            documents: List of documents with 'text' field and 'id' field
             verbose: Whether to show progress
             
         Returns:
-            List of results with original and distilled text
+            List of results with original and distilled text, preserving id
         """
+        # Set the verbose environment variable
+        if verbose:
+            os.environ['SDK_VERBOSE'] = 'true'
+        else:
+            os.environ['SDK_VERBOSE'] = 'false'
+            
         results = []
         
         with Progress(
@@ -71,34 +84,33 @@ class DistillGenerator:
             )
             
             for i, doc in enumerate(documents):
-                doc_text = doc.get("text", "")
+                doc_text = doc["text"]
                 
                 if verbose:
                     print(f"\nProcessing document {i+1}/{len(documents)} ({len(doc_text)} chars)...")
                 
                 # Distill the text
-                distilled = self.distill_text(doc_text)
+                distilled = self.distill_text(document_text=doc_text)
                 
-                # Create result entry
+                # Create result entry with text and id
                 result = {
-                    "original_text": doc_text,
-                    "distilled_text": distilled,
+                    "id": doc["id"],
+                    "text": distilled,
                     "original_length": len(doc_text),
                     "distilled_length": len(distilled),
-                    "compression_ratio": len(distilled) / len(doc_text) if len(doc_text) > 0 else 0
+                    "compression_ratio": len(distilled) / len(doc_text)
                 }
-                
-                # Include metadata if available
-                if "metadata" in doc:
-                    result["metadata"] = doc["metadata"]
                 
                 results.append(result)
                 
                 if verbose:
-                    print(f"  Generated distilled text ({len(distilled)} chars, "
+                    print(f"  Generated distilled text for {doc['id']} ({len(distilled)} chars, "
                           f"{result['compression_ratio']:.2%} of original)")
                 
                 progress.advance(task)
+        
+        if verbose:
+            print(f"\n✅ Successfully distilled {len(results)} documents")
         
         return results
 
