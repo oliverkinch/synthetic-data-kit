@@ -81,10 +81,7 @@ class QAGenerator:
             print(f"Summary generated ({len(summary)} chars)")
         return summary
     
-    def generate_qa_pairs(self, 
-                        document_text: str, 
-                        summary: str, 
-                        num_pairs: int = 25) -> List[Dict[str, str]]:
+    def generate_qa_pairs(self, document_text: str) -> List[Dict[str, str]]:
         """Generate QA pairs from the document using batched processing"""
         verbose = os.environ.get('SDK_VERBOSE', 'false').lower() == 'true'
         
@@ -107,7 +104,6 @@ class QAGenerator:
             print(f"Using batch size of {batch_size}")
         
         all_qa_pairs = []
-        pairs_per_chunk = max(1, round(num_pairs / len(chunks)))
         
         # Get QA generation prompt template
         qa_prompt_template = get_prompt(self.config, "qa_generation")
@@ -115,10 +111,8 @@ class QAGenerator:
         # Prepare all message batches
         all_messages = []
         for i, chunk in enumerate(chunks):
-            # Format the prompt with summary and text
+            # Format the prompt with text
             qa_prompt = qa_prompt_template.format(
-                num_pairs=pairs_per_chunk,
-                summary=summary[:100],
                 text=chunk
             )
             
@@ -150,12 +144,6 @@ class QAGenerator:
         
         # Process in batches
         for batch_start in range(0, len(chunks), batch_size):
-            # Check if we've already generated enough pairs
-            if len(all_qa_pairs) >= num_pairs:
-                if verbose:
-                    print(f"Reached target of {num_pairs} pairs. Stopping processing.")
-                break
-                
             batch_end = min(batch_start + batch_size, len(chunks))
             batch_messages = all_messages[batch_start:batch_end]
             current_batch_size = len(batch_messages)
@@ -179,35 +167,18 @@ class QAGenerator:
                 
                 # Process each response in the batch
                 for j, response in enumerate(batch_responses):
-                    # Check if we've reached the target before processing more
-                    if len(all_qa_pairs) >= num_pairs:
-                        if verbose:
-                            print(f"  Reached target of {num_pairs} pairs. Stopping batch processing.")
-                        break
-                        
                     chunk_index = batch_start + j
                     chunk_pairs = parse_qa_pairs(response)
-                    
+
+                    if chunk_pairs:
+                        all_qa_pairs.extend(chunk_pairs)
                     # Only add pairs up to the target limit
-                    remaining_pairs = num_pairs - len(all_qa_pairs)
-                    if remaining_pairs > 0:
-                        pairs_to_add = chunk_pairs[:remaining_pairs]
-                        all_qa_pairs.extend(pairs_to_add)
-                        
-                        if verbose:
-                            print(f"  Generated {len(pairs_to_add)} pairs from chunk {chunk_index+1} (total: {len(all_qa_pairs)}/{num_pairs})")
-                    
-                    # Break if we've reached the target
-                    if len(all_qa_pairs) >= num_pairs:
-                        break
+                    if verbose:
+                        print(f"  Generated {len(chunk_pairs)} pairs from chunk {chunk_index+1} (total: {len(all_qa_pairs)})")
                 
                 # Update progress bar if in verbose mode
                 if progress_ctx and generate_task:
                     progress_ctx.update(generate_task, advance=current_batch_size)
-                
-                # Break outer loop if we've reached the target
-                if len(all_qa_pairs) >= num_pairs:
-                    break
                 
             except Exception as e:
                 if verbose:
@@ -227,96 +198,8 @@ class QAGenerator:
             print("Batch processing complete.")
         
         # Always print summary information, even in non-verbose mode
-        print(f"Generated {len(all_qa_pairs)} QA pairs total (requested: {num_pairs})")
+        print(f"Generated {len(all_qa_pairs)} QA pairs total")
         return all_qa_pairs
-    
-    def rate_qa_pairs(self, 
-                    qa_pairs: List[Dict[str, str]], 
-                    summary: str, 
-                    threshold: Optional[float] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-        """Rate and filter QA pairs by quality"""
-        verbose = os.environ.get('SDK_VERBOSE', 'false').lower() == 'true'
-        
-        if not qa_pairs:
-            return [], {"total": 0, "filtered": 0, "retention_rate": 0, "avg_score": 0}
-        
-        # Get threshold from args, then config, then default
-        if threshold is None:
-            threshold = self.curate_config.get("threshold", 7.0)
-            
-        if verbose:
-            print(f"Evaluating {len(qa_pairs)} pairs...")
-        
-        # Get rating config
-        batch_size = self.curate_config.get("batch_size", 8)
-        temperature = self.curate_config.get("temperature", 0.1)
-        
-        # Get rating prompt template
-        rating_prompt_template = get_prompt(self.config, "qa_rating")
-        
-        # Process in batches
-        batches = [qa_pairs[i:i+batch_size] for i in range(0, len(qa_pairs), batch_size)]
-        
-        rated_pairs = []
-        total_score = 0
-        
-        # Create progress bar
-        progress_columns = [
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        ]
-        
-        with Progress(*progress_columns) as progress:
-            rating_task = progress.add_task(f"Rating QA pairs", total=len(batches))
-            
-            for i, batch in enumerate(batches):
-                if verbose:
-                    print(f"Rating batch {i+1}/{len(batches)}...")
-                batch_json = json.dumps(batch, indent=2)
-                
-                # Format the rating prompt with pairs
-                rating_prompt = rating_prompt_template.format(pairs=batch_json)
-                
-                messages = [
-                    {"role": "system", "content": rating_prompt}
-                ]
-                
-                try:
-                    response = self.client.chat_completion(
-                        messages, 
-                        temperature=temperature
-                    )
-                    
-                    rated_batch = parse_ratings(response)
-                    
-                    for pair in rated_batch:
-                        if "rating" in pair:
-                            total_score += pair["rating"]
-                            if pair["rating"] >= threshold:
-                                rated_pairs.append(pair)
-                
-                except Exception as e:
-                    if verbose:
-                        print(f"Error rating batch {i+1}: {str(e)}")
-                
-                time.sleep(0.5)  # Avoid rate limits
-                progress.update(rating_task, advance=1)
-        
-        # Calculate metrics
-        metrics = {
-            "total": len(qa_pairs),
-            "filtered": len(rated_pairs),
-            "retention_rate": round(len(rated_pairs) / len(qa_pairs), 2) if qa_pairs else 0,
-            "avg_score": round(total_score / len(qa_pairs), 1) if qa_pairs else 0
-        }
-        
-        # Always print summary information, even in non-verbose mode
-        print(f"Keeping {len(rated_pairs)} out of {len(qa_pairs)} pairs (threshold: {threshold})")
-        print(f"Average score: {metrics['avg_score']}")
-        return rated_pairs, metrics
     
     def process_documents(self,
                         documents: List[Dict[str, Any]],
@@ -335,7 +218,6 @@ class QAGenerator:
             os.environ['SDK_VERBOSE'] = 'false'
 
         all_qa_pairs = []
-        all_summaries = []
         
         if verbose:
             print(f"Processing {len(documents)} documents independently")
@@ -349,24 +231,19 @@ class QAGenerator:
             if verbose:
                 print(f"\nProcessing document {i}/{len(documents)} ({len(doc_text)} chars)...")
             
-            # Generate summary for this document
-            summary = self.generate_summary(doc_text, rolling_summary=rolling_summary)
-            all_summaries.append(summary)
-            
             # Generate QA pairs for this document (num_pairs per document)
-            qa_pairs = self.generate_qa_pairs(doc_text, summary, num_pairs=num_pairs)
+            qa_pairs = self.generate_qa_pairs(document_text=doc_text)
+            
+            # Attach source document id to each QA pair
+            for qa_pair in qa_pairs:
+                qa_pair["id"] = doc["id"]
             
             if verbose:
                 print(f"  Generated {len(qa_pairs)} QA pairs for document {i}")
             
             all_qa_pairs.extend(qa_pairs)
 
-        # Combine all summaries
-        combined_summary = " ".join(all_summaries)
-        
-        # Prepare result - no rating at this stage
         result = {
-            "summary": combined_summary,
             "qa_pairs": all_qa_pairs
         }
         
