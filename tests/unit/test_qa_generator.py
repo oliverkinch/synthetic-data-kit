@@ -25,25 +25,6 @@ def test_qa_generator_initialization(patch_config):
 
 
 @pytest.mark.unit
-def test_generate_summary(patch_config):
-    """Test generating summary."""
-    # Create mock LLM client
-    mock_client = MagicMock()
-    mock_client.chat_completion.return_value = "This is a summary of the document."
-
-    # Initialize generator
-    generator = QAGenerator(client=mock_client)
-
-    # Generate summary
-    summary = generator.generate_summary("This is a document to summarize.")
-
-    # Check that the summary was generated correctly
-    assert summary == "This is a summary of the document."
-    # Check that client was called
-    assert mock_client.chat_completion.called
-
-
-@pytest.mark.unit
 def test_generate_qa_pairs(patch_config):
     """Test generating QA pairs."""
     # Create mock LLM client

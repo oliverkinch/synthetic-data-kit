@@ -134,8 +134,12 @@ def get_format_config(config: Dict[str, Any]) -> Dict[str, Any]:
         'pretty_json': True
     })
 
-def get_prompt(config: Dict[str, Any], prompt_name: str) -> str:
-    """Get prompt by name"""
+def get_prompt(config: Dict[str, Any], prompt_name: str):
+    """Get prompt by name
+    
+    Returns:
+        Either a string (for old format) or a dict with 'system' and 'user' keys (for new format)
+    """
     prompts = config.get('prompts', {})
     if prompt_name not in prompts:
         raise ValueError(f"Prompt '{prompt_name}' not found in configuration")
