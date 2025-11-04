@@ -282,7 +282,7 @@ def ingest(
 def create(
     input: str = typer.Argument(..., help="File or directory to process"),
     content_type: str = typer.Option(
-        "qa", "--type", help="Type of content to generate [qa|distill|knowledge-list]"
+        "qa", "--type", help="Type of content to generate [qa|distill|knowledge-list|extract-knowledge]"
     ),
     output_dir: Optional[Path] = typer.Option(
         None, "--output-dir", "-o", help="Where to save the output"
@@ -325,8 +325,10 @@ def create(
           Use --num-pairs to specify how many pairs to generate PER entry
     - distill: Rewrite text into concise and clear passages
           Each text entry is distilled into a shorter, clearer version.
-    - knowledge-list: Extract key facts and concepts into information-dense lists
-          Each text entry is processed to extract important knowledge.
+    - knowledge-list: Extract key information as organized lists
+          Each text entry is processed to create structured lists of key facts.
+    - extract-knowledge: Rewrite knowledge from text as clear passages
+          Each text entry is rewritten into high-quality passages like in textbooks.
     - summary: Generate summaries of text
     - cot: Generate chain-of-thought reasoning examples
     - multimodal-qa: Generate QA pairs with multimodal content
@@ -336,6 +338,7 @@ def create(
     2. synthetic-data-kit create ./parsed/data.lance --type qa --num-pairs 10
     3. synthetic-data-kit create ./parsed/data.lance --type distill
     4. synthetic-data-kit create ./parsed/data.lance --type knowledge-list
+    5. synthetic-data-kit create ./parsed/data.lance --type extract-knowledge
     """
     import os
     from synthetic_data_kit.core.create import process_file
