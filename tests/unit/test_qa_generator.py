@@ -1,9 +1,7 @@
 """Unit tests for QA generator."""
 
-import json
-from unittest.mock import MagicMock
-
 import pytest
+from unittest.mock import MagicMock
 
 from synthetic_data_kit.generators.qa_generator import QAGenerator
 
@@ -21,140 +19,70 @@ def test_qa_generator_initialization(patch_config):
     assert generator.client == mock_client
     assert generator.config is not None
     assert generator.generation_config is not None
-    assert generator.curate_config is not None
 
 
 @pytest.mark.unit
-def test_generate_qa_pairs(patch_config):
-    """Test generating QA pairs."""
+def test_process_documents(patch_config):
+    """Test processing documents to generate QA pairs."""
     # Create mock LLM client
     mock_client = MagicMock()
     mock_client.batch_completion.return_value = [
-        json.dumps(
-            [
-                {
-                    "question": "What is synthetic data?",
-                    "answer": "Synthetic data is artificially generated data.",
-                }
-            ]
-        ),
-        json.dumps(
-            [
-                {
-                    "question": "Why use synthetic data?",
-                    "answer": "To protect privacy and create diverse training examples.",
-                }
-            ]
-        ),
+        """Here are the questions and answers based on the provided text:
+- Question: What is synthetic data? Answer: Synthetic data is artificially generated data.
+- Question: Why use it? Answer: To protect privacy.""",
+        """Here are the questions and answers based on the provided text:
+- Question: What is machine learning? Answer: A method of data analysis.
+- Question: How does it work? Answer: By learning from patterns."""
     ]
 
     # Initialize generator
     generator = QAGenerator(client=mock_client)
 
-    # Generate QA pairs
-    qa_pairs = generator.generate_qa_pairs(
-        document_text="This is a document to generate QA pairs from.",
-        summary="This is a summary of the document.",
-        num_pairs=2,
-    )
+    # Process documents
+    documents = [
+        {"id": "doc1", "text": "This is document 1 about synthetic data."},
+        {"id": "doc2", "text": "This is document 2 about machine learning."}
+    ]
+    
+    result = generator.process_documents(documents=documents, verbose=False)
 
-    # Check that the QA pairs were generated correctly
-    assert len(qa_pairs) == 2
-    assert qa_pairs[0]["question"] == "What is synthetic data?"
-    assert qa_pairs[1]["question"] == "Why use synthetic data?"
-    # Check that client was called
+    # Check that the result contains QA pairs
+    assert "qa_pairs" in result
+    assert len(result["qa_pairs"]) == 4  # 2 pairs from each document
+    
+    # Check that document IDs are attached
+    assert all("id" in pair for pair in result["qa_pairs"])
+    assert result["qa_pairs"][0]["id"] == "doc1"
+    assert result["qa_pairs"][2]["id"] == "doc2"
+    
+    # Check that batch_completion was called
     assert mock_client.batch_completion.called
 
 
 @pytest.mark.unit
-def test_rate_qa_pairs(patch_config):
-    """Test rating QA pairs."""
+def test_process_responses(patch_config):
+    """Test processing raw LLM responses."""
     # Create mock LLM client
     mock_client = MagicMock()
-    mock_client.chat_completion.return_value = json.dumps(
-        [
-            {
-                "question": "What is synthetic data?",
-                "answer": "Synthetic data is artificially generated data.",
-                "rating": 8,
-            },
-            {
-                "question": "Why use synthetic data?",
-                "answer": "To protect privacy and create diverse training examples.",
-                "rating": 6,
-            },
-        ]
-    )
 
     # Initialize generator
     generator = QAGenerator(client=mock_client)
 
-    # Sample QA pairs to rate
-    qa_pairs = [
-        {
-            "question": "What is synthetic data?",
-            "answer": "Synthetic data is artificially generated data.",
-        },
-        {
-            "question": "Why use synthetic data?",
-            "answer": "To protect privacy and create diverse training examples.",
-        },
+    # Test documents and responses (using the format that parse_qa_pairs expects)
+    documents = [
+        {"id": "doc1", "text": "Document 1"},
+        {"id": "doc2", "text": "Document 2"}
     ]
-
-    # Rate QA pairs with threshold 7
-    rated_pairs, metrics = generator.rate_qa_pairs(
-        qa_pairs=qa_pairs, summary="This is a summary of the document.", threshold=7.0
-    )
-
-    # Check that only pairs with rating >= threshold were kept
-    assert len(rated_pairs) == 1
-    assert rated_pairs[0]["question"] == "What is synthetic data?"
-    assert rated_pairs[0]["rating"] == 8
-
-    # Check metrics
-    assert metrics["total"] == 2
-    assert metrics["filtered"] == 1
-    assert metrics["retention_rate"] == 0.5
-
-    # Check that client was called
-    assert mock_client.chat_completion.called
-
-
-@pytest.mark.unit
-def test_process_document(patch_config):
-    """Test processing a document end-to-end."""
-    # Create mock LLM client
-    mock_client = MagicMock()
-    mock_client.chat_completion.return_value = "This is a summary of the document."
-    mock_client.batch_completion.return_value = [
-        json.dumps(
-            [
-                {
-                    "question": "What is synthetic data?",
-                    "answer": "Synthetic data is artificially generated data.",
-                }
-            ]
-        ),
-        json.dumps(
-            [
-                {
-                    "question": "Why use synthetic data?",
-                    "answer": "To protect privacy and create diverse training examples.",
-                }
-            ]
-        ),
+    
+    responses = [
+        "- Question: What is Q1? Answer: This is A1",
+        "- Question: What is Q2? Answer: This is A2"
     ]
+    
+    result = generator.process_responses(documents, responses, verbose=False)
 
-    # Initialize generator
-    generator = QAGenerator(client=mock_client)
-
-    # Process document
-    result = generator.process_documents(
-        documents=[{"text": "This is a document to process."}], num_pairs=2, verbose=False
-    )
-
-    # Check that the result contains summary and QA pairs
-    assert "summary" in result
+    # Check result structure
     assert "qa_pairs" in result
-    assert result["summary"] == "This is a summary of the document."
     assert len(result["qa_pairs"]) == 2
+    assert result["qa_pairs"][0]["id"] == "doc1"
+    assert result["qa_pairs"][1]["id"] == "doc2"
