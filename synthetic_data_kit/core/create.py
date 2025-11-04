@@ -15,8 +15,7 @@ from synthetic_data_kit.generators.qa_generator import QAGenerator
 from synthetic_data_kit.generators.distill_generator import DistillGenerator
 from synthetic_data_kit.generators.knowledge_list_generator import KnowledgeListGenerator
 from synthetic_data_kit.generators.extract_knowledge_generator import ExtractKnowledgeGenerator
-
-from synthetic_data_kit.utils.config import get_generation_config
+from synthetic_data_kit.generators.wikipedia_rephrase_generator import WikipediaRephraseGenerator
 
 from synthetic_data_kit.utils.lance_utils import load_lance_dataset
 
@@ -48,7 +47,7 @@ def process_file(
         config_path: Path to configuration file
         api_base: VLLM API base URL
         model: Model to use
-        content_type: Type of content to generate (qa, distill, knowledge-list, extract-knowledge)
+        content_type: Type of content to generate (qa, distill, knowledge-list, extract-knowledge, wikipedia-rephrase)
         num_pairs: Target number of QA pairs to generate
         threshold: Quality threshold for filtering (1-10)
     
@@ -151,6 +150,24 @@ def process_file(
         
         # Save output
         output_path = os.path.join(output_dir, f"{base_name}_extracted_knowledge.json")
+        print(f"Saving result to {output_path}")
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+        
+        return output_path
+
+    elif content_type == "wikipedia-rephrase":
+        generator = WikipediaRephraseGenerator(client=client, config_path=config_path)
+        
+        # Process documents
+        result = generator.process_documents(
+            documents=documents,
+            verbose=verbose
+        )
+        
+        # Save output
+        output_path = os.path.join(output_dir, f"{base_name}_wikipedia_rephrased.json")
         print(f"Saving result to {output_path}")
         
         with open(output_path, 'w', encoding='utf-8') as f:
