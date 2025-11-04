@@ -89,7 +89,8 @@ prompts:
   # QA pair generation prompt
   qa_generation:
     system: |
-      You are an expert at creating high-quality question-answer pairs from Danish text. Follow these instructions:
+      Task: Read the text, ask questions and answer them.
+      Follow these instructions:
       1. All questions and answers MUST be written in Danish.
       2. Ask diverse questions that require different cognitive skills or cover different aspects of the text.
       3. Ask questions in various forms such as:
@@ -103,36 +104,36 @@ prompts:
       5. Write questions and answers using clear and concise language.
       6. Use plain text. Do not use Markdown.
       7. Each question and answer pair should be on a separate line. Tag the question with "Question:" and the answer with "Answer:".
+    user: |
+      Text:
+      {text}
       
-      Give your response in this format:
+      Task:
+      After reading the above text, ask up to 8 questions and provide the correct answers following the instructions. Give your response in this format:
       Here are the questions and answers based on the provided text:
       - Question: [first question] Answer: [first answer]
       - Question: [second question] Answer: [second answer]
       ....
-    user: |
-      Read the following Danish text and generate up to 8 questions in Danish with their correct answers in Danish.
-      
-      Text:
-      {text}
   
   # Distillation prompt - rewrite text concisely
   distill:
     system: |
-      You are an expert at paraphrasing and condensing Danish text while preserving essential information. Follow these instructions:
+      Your task is to read and paraphrase the provided text following these instructions:
       - The input text is in Danish and your output MUST also be in Danish.
       - Aim to create a condensed but accurate and informative version of the original text, not a simplistic summary.
       - Capture and preserve the crucial information, key concepts, important values, and factual details in the original text, while making it more readable and accessible.
       - Retain technical terms, specialized vocabulary, and complex concepts.
       - Retain examples, explanations of reasoning processes, and supporting evidence to maintain the text's depth and context.
       - Only include information that is present in the original text. Do not add new or unsubstantiated claims.
-      - Write in plain text. Do not use Markdown.
+      - Write in plain text.
     user: |
-      Paraphrase the following Danish text in high-quality and clear Danish following the instructions.
-      
-      Text:
+      Here is the text:
       {text}
+      
+      Task:
+      After thoroughly reading the above text, paraphrase it in high-quality and clear Danish following the instructions.
   
-  # Knowledge extraction prompt - extract key facts and concepts
+  # Knowledge list prompt - create organized lists of key information
   knowledge_list:
     system: |
       You are an expert at extracting key information from Danish text. Follow these instructions:
@@ -141,12 +142,33 @@ prompts:
       - Ensure each point is clear, specific, and supported by the original text.
       - Ensure the extracted text is information-dense and easier to learn from.
       - Do not add titles or headings.
-      - Write in plain text. Do not use Markdown.
     user: |
-      Extract the factual information, concrete details, and key concepts from the following Danish text. Output in Danish.
+      Review the text and extract the key information from the following Danish text. Output in Danish.
       
       Text:
       {text}
+      
+      Task:
+      Extract the factual information, concrete details, and key concepts from the above text following the instructions.
+  
+  # Extract knowledge prompt - rewrite knowledge as clear passages
+  extract_knowledge:
+    system: |
+      Your task is to rewrite knowledge from the provided text following these instructions:
+      - The input text is in Danish and your output MUST also be in Danish.
+      - Rewrite the text as a passage or passages using easy-to-understand and high-quality sentences like those in textbooks and Wikipedia.
+      - Focus on content in disciplines such as humanities, social sciences, natural sciences, technology, engineering, math, law and legal, business, management, art, education, agricultural sciences, politics, and history.
+      - Disregard content that does not contain useful facts or knowledge.
+      - Retain examples, explanations of reasoning processes, and supporting evidence to maintain the text's depth and context.
+      - Do not add or alter details. Only restate what is already in the text.
+      - Write in plain text.
+      - Do not add titles, subtitles, notes, or comment.
+    user: |
+      Text:
+      {text}
+      
+      Task:
+      Rewrite facts and knowledge from the above text as a passage or passages following the instructions. Output in Danish.
   
   # QA pair rating prompt
   qa_rating: |
