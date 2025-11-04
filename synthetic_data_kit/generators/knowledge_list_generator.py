@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
-# Distill text into concise passages
+# Extract knowledge from text into information-dense lists
 
 from typing import Dict, List, Any, Optional
 import os
@@ -14,46 +14,46 @@ from synthetic_data_kit.generators.base import BaseGenerator
 from synthetic_data_kit.utils.config import get_prompt
 
 
-class DistillGenerator(BaseGenerator):
+class KnowledgeListGenerator(BaseGenerator):
     def __init__(self, 
                  client: LLMClient,
                  config_path: Optional[Path] = None):
-        """Initialize the Distill Generator with an LLM client and optional config"""
+        """Initialize the Knowledge List Generator with an LLM client and optional config"""
         super().__init__(client, config_path)
     
     def process_responses(self, 
                          documents: List[Dict[str, Any]], 
                          responses: List[str],
                          verbose: bool = False) -> List[Dict[str, Any]]:
-        """Process distill responses into structured results
+        """Process knowledge extraction responses into structured results
         
         Args:
             documents: Original input documents
-            responses: Raw LLM responses (distilled text)
+            responses: Raw LLM responses (extracted knowledge)
             verbose: Whether to show detailed output
             
         Returns:
-            List of results with distilled text and metadata
+            List of results with extracted knowledge and metadata
         """
         results = []
-        for i, (doc, distilled) in enumerate(zip(documents, responses)):
+        for i, (doc, knowledge) in enumerate(zip(documents, responses)):
             result = {
                 "id": doc["id"],
-                "text": distilled,
+                "text": knowledge,
                 "original_length": len(doc["text"]),
-                "distilled_length": len(distilled),
-                "compression_ratio": len(distilled) / len(doc["text"])
+                "knowledge_length": len(knowledge),
+                "compression_ratio": len(knowledge) / len(doc["text"])
             }
             results.append(result)
             
             if verbose:
-                print(f"  Distilled text for {doc['id']} ({len(distilled)} chars, "
+                print(f"  Extracted knowledge for {doc['id']} ({len(knowledge)} chars, "
                       f"{result['compression_ratio']:.2%} of original)")
         
-        print(f"✅ Successfully distilled {len(results)} documents")
+        print(f"✅ Successfully extracted knowledge from {len(results)} documents")
         
         return results
 
     def _get_prompt_name(self) -> str:
         """Return the name of the prompt to use from config"""
-        return "distill"
+        return "knowledge_list"

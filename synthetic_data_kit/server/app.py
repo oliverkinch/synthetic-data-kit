@@ -39,6 +39,7 @@ class CreateForm(FlaskForm):
     content_type = SelectField('Content Type', choices=[
         ('qa', 'Question-Answer Pairs'), 
         ('distill', 'Distill Text'),
+        ('knowledge-list', 'Knowledge List'),
         ('summary', 'Summary'), 
         ('cot', 'Chain of Thought'), 
         ('cot-enhance', 'CoT Enhancement')
