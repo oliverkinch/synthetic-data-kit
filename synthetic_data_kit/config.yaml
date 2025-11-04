@@ -170,6 +170,16 @@ prompts:
       Task:
       Rewrite facts and knowledge from the above text as a passage or passages following the instructions. Output in Danish.
   
+  # Wikipedia-style rephrasing prompt
+  wikipedia_rephrase:
+    system: |
+      For the following paragraph give me a diverse paraphrase of the same in high quality language as in sentences on Wikipedia.
+      - The input text is in Danish and your output MUST also be in Danish.
+      Begin your answer on a separate line with "Here is a paraphrased version:".
+    user: |
+      Text:
+      {text}
+  
   # QA pair rating prompt
   qa_rating: |
     Rate each question-answer pair on a scale from 1-10, based on:
