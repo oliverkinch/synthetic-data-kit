@@ -38,12 +38,16 @@ class ExtractKnowledgeGenerator(BaseGenerator):
             result = {
                 "id": doc["id"],
                 "text": knowledge,
+                "original_text": doc["text"],
+                "original_length": len(doc["text"]),
+                "knowledge_length": len(knowledge),
+                "compression_ratio": len(knowledge) / len(doc["text"])
             }
             results.append(result)
             
             if verbose:
                 print(f"  Extracted knowledge for {doc['id']} ({len(knowledge)} chars, "
-                      f"{result['compression_ratio']:.2%} of original)")
+                      f"{result["compression_ratio"]:.2%} of original)")
         
         print(f"✅ Successfully extracted knowledge from {len(results)} documents")
         

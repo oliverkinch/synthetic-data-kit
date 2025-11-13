@@ -131,7 +131,7 @@ def process_file(
         )
         
         # Save output
-        output_path = os.path.join(output_dir, f"{base_name}_knowledge.json")
+        output_path = os.path.join(output_dir, f"{base_name}_knowledge_list.json")
         print(f"Saving result to {output_path}")
         
         with open(output_path, 'w', encoding='utf-8') as f:

@@ -38,6 +38,7 @@ class WikipediaRephraseGenerator(BaseGenerator):
             result = {
                 "id": doc["id"],
                 "text": rephrased,
+                "original_text": doc["text"],
             }
             results.append(result)
             

@@ -40,6 +40,7 @@ class DistillGenerator(BaseGenerator):
             result = {
                 "id": doc["id"],
                 "text": distilled,
+                "original_text": doc["text"],
                 "original_length": len(doc["text"]),
                 "distilled_length": len(distilled),
                 "compression_ratio": len(distilled) / len(doc["text"])

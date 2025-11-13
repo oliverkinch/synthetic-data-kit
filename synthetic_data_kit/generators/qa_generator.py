@@ -32,34 +32,31 @@ class QAGenerator(BaseGenerator):
             verbose: Whether to show detailed output
             
         Returns:
-            Dict with 'qa_pairs' list containing parsed QA pairs
+            Dict with document IDs as keys, each containing 'original_text' and 'qa_pairs'
         """
-        all_qa_pairs = []
-        doc_qa_counts = {}  # Track QA pairs per document
+        result = {}
+        total_qa_pairs = 0
         
         for doc_idx, response in enumerate(responses):
             doc_id = documents[doc_idx]["id"]
-            qa_pairs = parse_qa_pairs(response)
+            original_text = documents[doc_idx]["text"]
+            qa_pairs = parse_qa_pairs(text=response)
+            
+            # Create entry for this document
+            result[doc_id] = {
+                "original_text": original_text,
+                "qa_pairs": qa_pairs
+            }
             
             if qa_pairs:
-                # Attach source document id to each QA pair
-                for qa_pair in qa_pairs:
-                    qa_pair["id"] = doc_id
-                all_qa_pairs.extend(qa_pairs)
-                
-                # Track count
-                doc_qa_counts[doc_id] = len(qa_pairs)
+                total_qa_pairs += len(qa_pairs)
+                if verbose:
+                    print(f"  {doc_id}: {len(qa_pairs)} QA pairs")
         
         if verbose:
             print(f"\n✅ Generated QA pairs per document:")
-            for doc_id, count in doc_qa_counts.items():
-                print(f"  {doc_id}: {count} QA pairs")
         
-        print(f"✅ Total: {len(all_qa_pairs)} QA pairs generated from {len(documents)} documents")
-
-        result = {
-            "qa_pairs": all_qa_pairs
-        }
+        print(f"✅ Total: {total_qa_pairs} QA pairs generated from {len(documents)} documents")
 
         return result
 

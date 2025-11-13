@@ -40,6 +40,7 @@ class KnowledgeListGenerator(BaseGenerator):
             result = {
                 "id": doc["id"],
                 "text": knowledge,
+                "original_text": doc["text"],
                 "original_length": len(doc["text"]),
                 "knowledge_length": len(knowledge),
                 "compression_ratio": len(knowledge) / len(doc["text"])
